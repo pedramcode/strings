@@ -195,7 +195,6 @@ void process_source(Strings_t *string, const unsigned char *source, size_t lengt
                 if (skip_mode && ((CondInfo_t *) stack_peek(stack)) != NULL &&
                     ((CondInfo_t *) stack_peek(stack))->index == skip_index) {
                     skip_mode = false;
-                    index++;
                 } else if (((CondInfo_t *) stack_peek(stack)) == NULL) {
                     fprintf(stderr, "Invalid control symbol\n");
                     exit(1);
@@ -205,6 +204,7 @@ void process_source(Strings_t *string, const unsigned char *source, size_t lengt
                     free(stack_pop(stack));
                     index++;
                 }
+
                 break;
             }
             case '.':
