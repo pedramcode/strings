@@ -124,7 +124,136 @@ bool is_valid_char(char c) {
     );
 }
 
-void process_source(Strings_t *string, unsigned char *source, size_t length) {
-    size_t opens_length = 0;
-    size_t *opens = malloc(sizeof(size_t) * opens_length);
+void set_cell(Strings_t *string, unsigned char c) {
+    string->data[string->string][string->pointers[string->string]] = c;
+}
+
+int char_to_num(unsigned char c) {
+    if (c >= '0' && c <= '9') {
+        return c - 48;
+    }
+    if (c == 'A' || c == 'a') return 10;
+    if (c == 'B' || c == 'b') return 11;
+    if (c == 'C' || c == 'c') return 12;
+    if (c == 'D' || c == 'd') return 13;
+    if (c == 'E' || c == 'e') return 14;
+    if (c == 'F' || c == 'f') return 15;
+    fprintf(stderr, "Invalid string symbol\n");
+    exit(1);
+}
+
+typedef enum {
+    OPEN = 1,
+    CLOSE = 2,
+} CondType;
+
+typedef struct {
+    CondType _type;
+    size_t index;
+} CondInfo_t;
+
+void process_source(Strings_t *string, const unsigned char *source, size_t length) {
+    size_t index = 0;
+
+    Stack_t *stack = stack_new();
+
+    bool skip_mode = false;
+    size_t skip_index = 0;
+
+    while (true) {
+        unsigned char c = source[index];
+        switch (c) {
+            case '+':
+                inc_cell(string);
+                index++;
+                break;
+            case '-':
+                dec_cell(string);
+                index++;
+                break;
+            case '>':
+                next_cell(string);
+                index++;
+                break;
+            case '<':
+                prev_cell(string);
+                index++;
+                break;
+            case '[': {
+                CondInfo_t *info = malloc(sizeof(CondInfo_t));
+                info->_type = OPEN;
+                info->index = index;
+                stack_push(stack, info);
+                if (read_cell(string) == 0) {
+                    skip_mode = true;
+                    skip_index = index;
+                }
+                index++;
+                break;
+            }
+            case ']': {
+                if (skip_mode && ((CondInfo_t *) stack_peek(stack)) != NULL &&
+                    ((CondInfo_t *) stack_peek(stack))->index == skip_index) {
+                    skip_mode = false;
+                    index++;
+                } else if (((CondInfo_t *) stack_peek(stack)) == NULL) {
+                    fprintf(stderr, "Invalid control symbol\n");
+                    exit(1);
+                } else if (read_cell(string) != 0) {
+                    index = ((CondInfo_t *) stack_peek(stack))->index + 1;
+                } else {
+                    free(stack_pop(stack));
+                    index++;
+                }
+                break;
+            }
+            case '.':
+                fprintf(stdout, "%c", read_cell(string));
+                index++;
+                break;
+            case ',': {
+                unsigned char ic;
+                fscanf(stdin, "%c", &ic);
+                set_cell(string, ic);
+                index++;
+                break;
+            }
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+            case 'A':
+            case 'a':
+            case 'B':
+            case 'b':
+            case 'C':
+            case 'c':
+            case 'D':
+            case 'd':
+            case 'E':
+            case 'e':
+            case 'F':
+            case 'f': {
+                int n = char_to_num(c);
+                goto_string(string, n);
+                index++;
+                break;
+            }
+            case '`':
+                next_string(string);
+                index++;
+                break;
+            case '!':
+                prev_string(string);
+                index++;
+                break;
+        }
+        if (index == length)break;
+    }
 }

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <stdbool.h>
+#include "stack/stack.h"
 
 #define STRING_MAX 16
 #define CHUNK_SIZE 128
@@ -18,7 +19,7 @@ typedef struct {
 
 Strings_t *init_strings();
 
-void process_source(Strings_t *string, unsigned char* source, size_t length);
+void process_source(Strings_t *string, const unsigned char* source, size_t length);
 
 void grow_string(Strings_t *string, unsigned char i);
 void shrink_string(Strings_t *string, unsigned char i);
@@ -32,6 +33,7 @@ void prev_cell(Strings_t *string);
 void inc_cell(Strings_t *string);
 void dec_cell(Strings_t *string);
 int read_cell(Strings_t *string);
+void set_cell(Strings_t *string, unsigned char c);
 
 bool is_valid_char(char c);
 
