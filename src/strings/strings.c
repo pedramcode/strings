@@ -23,7 +23,7 @@ Strings_t *init_strings() {
 
 void grow_string(Strings_t *string, unsigned char i) {
     if (i >= STRING_MAX) {
-        fprintf(stderr, "Invalid string index\n");
+        fprintf(stderr, "Cannot grow string(%d)\n", i);
         exit(1);
     }
     string->chunks[i]++;
@@ -32,7 +32,7 @@ void grow_string(Strings_t *string, unsigned char i) {
 
 void shrink_string(Strings_t *string, unsigned char i) {
     if (i >= STRING_MAX) {
-        fprintf(stderr, "Invalid string index\n");
+        fprintf(stderr, "Cannot shrink string(%d)\n", i);
         exit(1);
     }
     string->chunks[i]--;
@@ -102,6 +102,10 @@ int read_cell(Strings_t *string) {
     return string->data[i][string->pointers[i]];
 }
 
+void set_cell(Strings_t *string, unsigned char c) {
+    string->data[string->string][string->pointers[string->string]] = c;
+}
+
 bool is_valid_char(char c) {
     return (
             c == '+' ||
@@ -120,12 +124,9 @@ bool is_valid_char(char c) {
             c == 'E' || c == 'e' ||
             c == 'F' || c == 'f' ||
             c == '`' ||
-            c == '!'
+            c == '!' ||
+            c == '\n'
     );
-}
-
-void set_cell(Strings_t *string, unsigned char c) {
-    string->data[string->string][string->pointers[string->string]] = c;
 }
 
 int char_to_num(unsigned char c) {
@@ -157,25 +158,46 @@ void process_source(Strings_t *string, const unsigned char *source, size_t lengt
 
     Stack_t *stack = stack_new();
 
+    bool comment_mode = false;
     bool skip_mode = false;
     size_t skip_index = 0;
 
+    size_t line = 1;
+    size_t col = 0;
+
     while (true) {
+        col++;
         unsigned char c = source[index];
         switch (c) {
             case '+':
+                if (comment_mode || skip_mode) {
+                    index++;
+                    break;
+                }
                 inc_cell(string);
                 index++;
                 break;
             case '-':
+                if (comment_mode || skip_mode) {
+                    index++;
+                    break;
+                }
                 dec_cell(string);
                 index++;
                 break;
             case '>':
+                if (comment_mode || skip_mode) {
+                    index++;
+                    break;
+                }
                 next_cell(string);
                 index++;
                 break;
             case '<':
+                if (comment_mode || skip_mode) {
+                    index++;
+                    break;
+                }
                 prev_cell(string);
                 index++;
                 break;
@@ -207,11 +229,29 @@ void process_source(Strings_t *string, const unsigned char *source, size_t lengt
 
                 break;
             }
+            case '\n':
+                comment_mode = false;
+                line++;
+                index++;
+                col = 1;
+                break;
+            case ';':
+                comment_mode = true;
+                index++;
+                break;
             case '.':
+                if (comment_mode || skip_mode) {
+                    index++;
+                    break;
+                }
                 fprintf(stdout, "%c", read_cell(string));
                 index++;
                 break;
             case ',': {
+                if (comment_mode || skip_mode) {
+                    index++;
+                    break;
+                }
                 unsigned char ic;
                 fscanf(stdin, "%c", &ic);
                 set_cell(string, ic);
@@ -240,17 +280,40 @@ void process_source(Strings_t *string, const unsigned char *source, size_t lengt
             case 'e':
             case 'F':
             case 'f': {
+                if (comment_mode || skip_mode) {
+                    index++;
+                    break;
+                }
                 int n = char_to_num(c);
                 goto_string(string, n);
                 index++;
                 break;
             }
             case '`':
+                if (comment_mode || skip_mode) {
+                    index++;
+                    break;
+                }
                 next_string(string);
                 index++;
                 break;
             case '!':
+                if (comment_mode || skip_mode) {
+                    index++;
+                    break;
+                }
                 prev_string(string);
+                index++;
+                break;
+            case '\t':
+            case ' ':
+                index++;
+                break;
+            default:
+                if (!comment_mode) {
+                    fprintf(stderr, "Invalid symbol %ld:%ld\n", line, col);
+                    exit(1);
+                }
                 index++;
                 break;
         }

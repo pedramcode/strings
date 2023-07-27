@@ -22,12 +22,10 @@ int main(int argc, char **argv) {
 
     char c;
     while ((c = fgetc(file)) != EOF) {
-        if (is_valid_char(c)) {
-            source[source_index++] = c;
-            if (source_index % read_chunk == 0) {
-                chunks++;
-                source = realloc(source, read_chunk * chunks);
-            }
+        source[source_index++] = c;
+        if (source_index % read_chunk == 0) {
+            chunks++;
+            source = realloc(source, read_chunk * chunks);
         }
     }
     fclose(file);
